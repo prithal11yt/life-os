@@ -45,7 +45,7 @@ export async function insertItems(
     raw_transcript: meta.rawTranscript ?? null,
   }));
 
-  const { data, error } = await supabase.from("items").insert(rows).select();
+  const { data, error } = await supabase.from(TABLE).insert(rows).select();
   if (error) throw new Error(error.message);
   return (data as Item[]) ?? [];
 }
@@ -53,7 +53,7 @@ export async function insertItems(
 export async function setItemStatus(id: string, status: Item["status"]) {
   const supabase = getSupabase();
   if (!supabase) throw new Error("Supabase not configured");
-  const { error } = await supabase.from("items").update({ status }).eq("id", id);
+  const { error } = await supabase.from(TABLE).update({ status }).eq("id", id);
   if (error) throw new Error(error.message);
 }
 
