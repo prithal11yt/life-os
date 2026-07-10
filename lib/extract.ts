@@ -15,10 +15,10 @@ Return JSON of exactly this shape:
   "details": string | null,                    // optional extra context, else null
   "priority": "high" | "medium" | "low",       // deadlines, money, customers = high
   "category": "business" | "personal",
-  "due_at": string | null                      // ISO 8601 datetime if a time/deadline is implied, else null
+  "due_at": string | null                      // MUST be a full ISO 8601 datetime like "2026-07-11T09:00:00Z", or null
 }]}
 
-Be decisive about priority. Keep titles crisp. Resolve relative dates (e.g. "tomorrow") against the current time given.`;
+Be decisive about priority. Keep titles crisp. For due_at, resolve any relative date (e.g. "tomorrow morning", "Friday") against the current time given and output a real ISO 8601 timestamp — NEVER a phrase. If no time is implied, use null.`;
 
 export async function extractItems(transcript: string, nowISO: string): Promise<ExtractedItem[]> {
   const result = (await completeJSON(

@@ -1,5 +1,6 @@
 import { getSupabase } from "./supabase";
 import { sampleItems } from "./sample-data";
+import { normalizeDueAt } from "./date";
 import { ExtractedItem, Item } from "./types";
 
 // Data access for captured items. Reads/writes Supabase when configured,
@@ -39,7 +40,7 @@ export async function insertItems(
     priority: e.priority,
     category: e.category,
     status: "open" as const,
-    due_at: e.due_at ?? null,
+    due_at: normalizeDueAt(e.due_at), // model may return phrases like "tomorrow"
     source: meta.source,
     raw_transcript: meta.rawTranscript ?? null,
   }));
