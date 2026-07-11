@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { integrations, env } from "@/lib/config";
 import { getOpenItems } from "@/lib/items";
-import { getAgenda } from "@/lib/agenda";
 import { buildBrief } from "@/lib/brief";
 import { sendMessage } from "@/lib/telegram";
 import { authorizeCron } from "@/lib/cron-auth";
@@ -14,8 +13,8 @@ export async function GET(req: NextRequest) {
     return Response.json({ ok: true, skipped: "not configured" });
   }
 
-  const [items, { events }] = await Promise.all([getOpenItems(), getAgenda()]);
-  const brief = await buildBrief(items, events);
+  const items = await getOpenItems();
+  const brief = await buildBrief(items);
   await sendMessage(env.telegramChatId!, `☀️ <b>Good morning</b>\n\n${brief}`);
 
   return Response.json({ ok: true });

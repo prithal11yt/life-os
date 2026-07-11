@@ -16,16 +16,10 @@ const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
 const PRIORITY_STYLE: Record<Priority, string> = {
   high: "bg-red-500/15 text-red-500 ring-red-500/25",
   medium: "bg-amber-500/15 text-amber-600 dark:text-amber-400 ring-amber-500/25",
-  low: "bg-zinc-500/15 text-zinc-500 ring-zinc-500/25",
-};
-
-const CATEGORY_STYLE: Record<Category, string> = {
-  business: "bg-violet-500/15 text-violet-500 ring-violet-500/25",
-  personal: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-emerald-500/25",
+  low: "bg-zinc-500/15 text-zinc-400 ring-zinc-500/25",
 };
 
 type TypeFilter = "all" | ItemType;
-type CatFilter = "all" | Category;
 
 export default function Board({
   initialItems,
@@ -36,26 +30,25 @@ export default function Board({
 }) {
   const [items, setItems] = useState<Item[]>(initialItems);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
-  const [catFilter, setCatFilter] = useState<CatFilter>("all");
   const [, startTransition] = useTransition();
 
-  const visible = useMemo(() => {
-    return items
-      .filter((i) => typeFilter === "all" || i.type === typeFilter)
-      .filter((i) => catFilter === "all" || i.category === catFilter)
-      .sort((a, b) => {
-        // Open items before done.
-        if ((a.status === "done") !== (b.status === "done"))
-          return a.status === "done" ? 1 : -1;
-        // Then by priority.
-        if (PRIORITY_RANK[a.priority] !== PRIORITY_RANK[b.priority])
-          return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
-        // Then by soonest due date (nulls last).
-        const ad = a.due_at ? new Date(a.due_at).getTime() : Infinity;
-        const bd = b.due_at ? new Date(b.due_at).getTime() : Infinity;
-        return ad - bd;
-      });
-  }, [items, typeFilter, catFilter]);
+  const sortItems = (list: Item[]) =>
+    [...list].sort((a, b) => {
+      if ((a.status === "done") !== (b.status === "done")) return a.status === "done" ? 1 : -1;
+      if (PRIORITY_RANK[a.priority] !== PRIORITY_RANK[b.priority])
+        return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+      const ad = a.due_at ? new Date(a.due_at).getTime() : Infinity;
+      const bd = b.due_at ? new Date(b.due_at).getTime() : Infinity;
+      return ad - bd;
+    });
+
+  const byCategory = useMemo(() => {
+    const filtered = items.filter((i) => typeFilter === "all" || i.type === typeFilter);
+    return {
+      business: sortItems(filtered.filter((i) => i.category === "business")),
+      personal: sortItems(filtered.filter((i) => i.category === "personal")),
+    };
+  }, [items, typeFilter]);
 
   function toggle(item: Item) {
     const done = item.status !== "done";
@@ -87,104 +80,122 @@ export default function Board({
     <div className="glass rounded-2xl p-4 sm:p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-base font-semibold">Captured</h2>
-        <div className="flex flex-wrap gap-1.5">
-          <FilterGroup
-            value={typeFilter}
-            onChange={setTypeFilter}
-            options={[
-              ["all", "All"],
-              ["task", "Tasks"],
-              ["idea", "Ideas"],
-              ["reminder", "Reminders"],
-            ]}
-          />
-        </div>
-      </div>
-
-      <div className="mb-4 flex gap-1.5">
         <FilterGroup
-          value={catFilter}
-          onChange={setCatFilter}
+          value={typeFilter}
+          onChange={setTypeFilter}
           options={[
-            ["all", "Everything"],
-            ["business", "Business"],
-            ["personal", "Personal"],
+            ["all", "All"],
+            ["task", "Tasks"],
+            ["idea", "Ideas"],
+            ["reminder", "Reminders"],
           ]}
         />
       </div>
 
       <QuickAdd onAdd={addQuick} />
 
-      <ul className="mt-3 flex flex-col gap-2">
-        {visible.length === 0 && (
-          <li className="py-10 text-center text-sm text-[var(--muted)]">
-            Nothing here yet. Drop a voice note in Telegram and it&apos;ll appear.
-          </li>
-        )}
-        {visible.map((item) => {
-          const done = item.status === "done";
-          const overdue = !done && isOverdue(item.due_at);
-          return (
-            <li
-              key={item.id}
-              className={`group flex items-start gap-3 rounded-xl border border-[var(--border)] p-3 transition-colors ${
-                done ? "opacity-55" : "hover:border-zinc-400/40"
-              }`}
-            >
-              <button
-                aria-label={done ? "Mark open" : "Mark done"}
-                onClick={() => toggle(item)}
-                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[11px] transition-colors ${
-                  done
-                    ? "border-emerald-500 bg-emerald-500 text-white"
-                    : "border-[var(--border)] hover:border-emerald-500"
-                }`}
-              >
-                {done ? "✓" : ""}
-              </button>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <Column
+          label="Business"
+          icon="💼"
+          accent="text-violet-400"
+          items={byCategory.business}
+          onToggle={toggle}
+        />
+        <Column
+          label="Personal"
+          icon="🏡"
+          accent="text-emerald-400"
+          items={byCategory.personal}
+          onToggle={toggle}
+        />
+      </div>
+    </div>
+  );
+}
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <p className={`text-sm font-medium leading-snug ${done ? "line-through" : ""}`}>
-                    <span className="mr-1.5">{TYPE_META[item.type].icon}</span>
-                    {item.title}
-                  </p>
-                  {item.due_at && (
-                    <span
-                      className={`shrink-0 whitespace-nowrap text-xs ${
-                        overdue ? "font-semibold text-red-500" : "text-[var(--muted)]"
-                      }`}
-                    >
-                      {overdue ? "overdue" : relativeTime(item.due_at)}
-                    </span>
-                  )}
-                </div>
-                {item.details && (
-                  <p className="mt-0.5 text-xs text-[var(--muted)]">{item.details}</p>
-                )}
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <Badge className={PRIORITY_STYLE[item.priority]}>{item.priority}</Badge>
-                  <Badge className={CATEGORY_STYLE[item.category]}>{item.category}</Badge>
-                  {item.source === "telegram" && (
-                    <span className="text-[11px] text-[var(--muted)]">· via voice</span>
-                  )}
-                </div>
-              </div>
-            </li>
-          );
-        })}
+function Column({
+  label,
+  icon,
+  accent,
+  items,
+  onToggle,
+}: {
+  label: string;
+  icon: string;
+  accent: string;
+  items: Item[];
+  onToggle: (i: Item) => void;
+}) {
+  const openCount = items.filter((i) => i.status !== "done").length;
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-black/20 p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <span>{icon}</span>
+        <h3 className={`text-sm font-semibold ${accent}`}>{label}</h3>
+        <span className="text-xs text-[var(--muted)]">{openCount}</span>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {items.length === 0 && (
+          <li className="py-6 text-center text-xs text-[var(--muted)]">Nothing here yet.</li>
+        )}
+        {items.map((item) => (
+          <ItemCard key={item.id} item={item} onToggle={onToggle} />
+        ))}
       </ul>
     </div>
   );
 }
 
-function Badge({ children, className }: { children: React.ReactNode; className: string }) {
+function ItemCard({ item, onToggle }: { item: Item; onToggle: (i: Item) => void }) {
+  const done = item.status === "done";
+  const overdue = !done && isOverdue(item.due_at);
   return (
-    <span
-      className={`rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ring-1 ring-inset ${className}`}
+    <li
+      className={`group flex items-start gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)] p-2.5 transition-colors ${
+        done ? "opacity-55" : "hover:border-[var(--accent)]/40"
+      }`}
     >
-      {children}
-    </span>
+      <button
+        aria-label={done ? "Mark open" : "Mark done"}
+        onClick={() => onToggle(item)}
+        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border text-[11px] transition-colors ${
+          done
+            ? "border-emerald-500 bg-emerald-500 text-white"
+            : "border-[var(--border)] hover:border-emerald-500"
+        }`}
+      >
+        {done ? "✓" : ""}
+      </button>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <p className={`text-sm font-medium leading-snug ${done ? "line-through" : ""}`}>
+            <span className="mr-1.5">{TYPE_META[item.type].icon}</span>
+            {item.title}
+          </p>
+          {item.due_at && (
+            <span
+              className={`shrink-0 whitespace-nowrap text-xs ${
+                overdue ? "font-semibold text-red-500" : "text-[var(--muted)]"
+              }`}
+            >
+              {overdue ? "overdue" : relativeTime(item.due_at)}
+            </span>
+          )}
+        </div>
+        {item.details && <p className="mt-0.5 text-xs text-[var(--muted)]">{item.details}</p>}
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <span
+            className={`rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ring-1 ring-inset ${PRIORITY_STYLE[item.priority]}`}
+          >
+            {item.priority}
+          </span>
+          {item.source === "telegram" && (
+            <span className="text-[11px] text-[var(--muted)]">· via voice</span>
+          )}
+        </div>
+      </div>
+    </li>
   );
 }
 
@@ -198,7 +209,7 @@ function FilterGroup<T extends string>({
   options: [T, string][];
 }) {
   return (
-    <div className="flex rounded-lg bg-black/5 p-0.5 dark:bg-white/5">
+    <div className="flex rounded-lg bg-black/20 p-0.5">
       {options.map(([v, label]) => (
         <button
           key={v}

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { insertItems, setItemStatus } from "@/lib/items";
+import { addHabit, toggleHabitToday, archiveHabit } from "@/lib/habits";
 import { integrations } from "@/lib/config";
 import { extractItems } from "@/lib/extract";
 import { Category, ItemType, Priority } from "@/lib/types";
@@ -81,4 +82,26 @@ export async function talkToAssistant(
     reply: `Consider it done, ${ADDRESS}. I've added ${items.length === 1 ? "it" : `${items.length} items`} to your board: ${titles}.`,
     saved: true,
   };
+}
+
+// ─── Habits ───────────────────────────────────────────────────────────
+export async function toggleHabitTodayAction(habitId: string) {
+  if (!integrations.supabase) return { ok: false as const };
+  const done = await toggleHabitToday(habitId);
+  revalidatePath("/");
+  return { ok: true as const, done };
+}
+
+export async function addHabitAction(name: string, emoji: string) {
+  if (!integrations.supabase) return { ok: false as const };
+  const habit = await addHabit(name.trim(), emoji.trim());
+  revalidatePath("/");
+  return { ok: true as const, habit };
+}
+
+export async function archiveHabitAction(habitId: string) {
+  if (!integrations.supabase) return { ok: false as const };
+  await archiveHabit(habitId);
+  revalidatePath("/");
+  return { ok: true as const };
 }
