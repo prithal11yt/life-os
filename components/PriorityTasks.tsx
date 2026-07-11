@@ -5,7 +5,7 @@ import { Item, ItemType, Priority } from "@/lib/types";
 import { relativeTime, isOverdue } from "@/lib/format";
 import { toggleItemAction, addItemAction } from "@/app/actions";
 
-const TYPE_EMOJI: Record<ItemType, string> = { task: "☑️", idea: "💡", reminder: "⏰" };
+const TYPE_EMOJI: Record<ItemType, string> = { task: "☑️", idea: "💡", reminder: "⏰", video: "🎬" };
 const PRI_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
 const PRI_PILL: Record<Priority, string> = {
   high: "text-[#ef4444] bg-[#fdecec]",
@@ -21,7 +21,7 @@ export default function PriorityTasks({ initialItems }: { initialItems: Item[] }
   const [, startTransition] = useTransition();
 
   const visible = items
-    .filter((i) => i.type !== "idea")
+    .filter((i) => i.type !== "idea" && i.type !== "video")
     .sort((a, b) => {
       if ((a.status === "done") !== (b.status === "done")) return a.status === "done" ? 1 : -1;
       if (PRI_RANK[a.priority] !== PRI_RANK[b.priority]) return PRI_RANK[a.priority] - PRI_RANK[b.priority];

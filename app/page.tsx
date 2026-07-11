@@ -5,6 +5,7 @@ import PriorityTasks from "@/components/PriorityTasks";
 import YouTubeCard from "@/components/YouTubeCard";
 import RecentActivity from "@/components/RecentActivity";
 import ScheduleCard from "@/components/ScheduleCard";
+import VideoIdeas from "@/components/VideoIdeas";
 import { getItems } from "@/lib/items";
 import { getYouTube } from "@/lib/youtube";
 import { getActivity } from "@/lib/activity";
@@ -40,7 +41,8 @@ export default async function Home() {
         <YouTubeCard stats={stats} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <VideoIdeas initial={items} />
         <ScheduleCard items={dueToday} />
         <RecentActivity items={items} />
       </div>

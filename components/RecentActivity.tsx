@@ -1,7 +1,7 @@
 import { Item, ItemType } from "@/lib/types";
 import { relativeTime } from "@/lib/format";
 
-const TYPE_EMOJI: Record<ItemType, string> = { task: "☑️", idea: "💡", reminder: "⏰" };
+const TYPE_EMOJI: Record<ItemType, string> = { task: "☑️", idea: "💡", reminder: "⏰", video: "🎬" };
 
 // Latest things you captured — the pulse of your day.
 export default function RecentActivity({ items }: { items: Item[] }) {

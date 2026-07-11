@@ -11,6 +11,7 @@ const NAV = [
   { label: "Dashboard", href: "/", icon: "grid" },
   { label: "Tasks", href: "/tasks", icon: "check" },
   { label: "Calendar", href: "/calendar", icon: "calendar" },
+  { label: "Video Ideas", href: "/videos", icon: "film" },
   { label: "YouTube", href: "/youtube", icon: "play" },
   { label: "Analytics", href: "/analytics", icon: "chart" },
   { label: "Notes", href: "/notes", icon: "note" },
@@ -117,6 +118,8 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
       return (<svg {...p}><rect x="3" y="4" width="18" height="18" rx="2.5" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>);
     case "play":
       return (<svg {...p}><rect x="2" y="5" width="20" height="14" rx="4" /><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none" /></svg>);
+    case "film":
+      return (<svg {...p}><rect x="2.5" y="4" width="19" height="16" rx="2.5" /><path d="M7 4v16M17 4v16M2.5 9h4.5M2.5 15h4.5M17 9h4.5M17 15h4.5" /></svg>);
     case "target":
       return (<svg {...p}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /></svg>);
     case "chart":

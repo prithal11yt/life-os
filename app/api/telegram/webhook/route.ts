@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
 }
 
 function summarize(items: ExtractedItem[], viaVoice: boolean, transcript: string): string {
-  const icon = { task: "☑️", idea: "💡", reminder: "⏰" };
+  const icon = { task: "☑️", idea: "💡", reminder: "⏰", video: "🎬" };
   const lines = items.map((i) => {
     const pri = i.priority === "high" ? "🔴" : i.priority === "medium" ? "🟡" : "⚪";
     return `${icon[i.type]} ${pri} <b>${escapeHtml(i.title)}</b> <i>(${i.category})</i>`;

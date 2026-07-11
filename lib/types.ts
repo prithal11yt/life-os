@@ -1,6 +1,6 @@
 // Core domain types for the Life OS assistant.
 
-export type ItemType = "task" | "idea" | "reminder";
+export type ItemType = "task" | "idea" | "reminder" | "video";
 export type Priority = "high" | "medium" | "low";
 export type Category = "business" | "personal";
 export type Status = "open" | "done" | "archived";

@@ -6,7 +6,7 @@ import { Item } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const TYPE_EMOJI = { task: "☑️", idea: "💡", reminder: "⏰" } as const;
+const TYPE_EMOJI = { task: "☑️", idea: "💡", reminder: "⏰", video: "🎬" } as const;
 
 function clock(iso: string) {
   return new Date(iso).toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" });

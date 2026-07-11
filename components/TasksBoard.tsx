@@ -5,7 +5,7 @@ import { Item, ItemType, Category, Priority } from "@/lib/types";
 import { relativeTime, isOverdue } from "@/lib/format";
 import { toggleItemAction, addItemAction } from "@/app/actions";
 
-const TYPE_EMOJI: Record<ItemType, string> = { task: "☑️", idea: "💡", reminder: "⏰" };
+const TYPE_EMOJI: Record<ItemType, string> = { task: "☑️", idea: "💡", reminder: "⏰", video: "🎬" };
 const PRI_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
 const PRI_PILL: Record<Priority, string> = {
   high: "text-[#ef4444] bg-[#fdecec]",
@@ -29,7 +29,7 @@ export default function TasksBoard({ initialItems }: { initialItems: Item[] }) {
     });
 
   const cols = useMemo(() => {
-    const f = items.filter((i) => type === "all" || i.type === type);
+    const f = items.filter((i) => i.type !== "video" && (type === "all" || i.type === type));
     return {
       business: sort(f.filter((i) => i.category === "business")),
       personal: sort(f.filter((i) => i.category === "personal")),
