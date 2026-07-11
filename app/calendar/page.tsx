@@ -1,6 +1,6 @@
 import PageHeader from "@/components/PageHeader";
 import { getItems } from "@/lib/items";
-import { localDay } from "@/lib/habits";
+import { localDay } from "@/lib/date";
 import { isOverdue } from "@/lib/format";
 import { Item } from "@/lib/types";
 

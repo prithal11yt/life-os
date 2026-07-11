@@ -12,7 +12,6 @@ const NAV = [
   { label: "Tasks", href: "/tasks", icon: "check" },
   { label: "Calendar", href: "/calendar", icon: "calendar" },
   { label: "YouTube", href: "/youtube", icon: "play" },
-  { label: "Habits", href: "/habits", icon: "target" },
   { label: "Analytics", href: "/analytics", icon: "chart" },
   { label: "Notes", href: "/notes", icon: "note" },
   { label: "Settings", href: "/settings", icon: "gear" },

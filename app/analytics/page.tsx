@@ -1,13 +1,16 @@
 import PageHeader from "@/components/PageHeader";
 import { getItems } from "@/lib/items";
-import { getHabits } from "@/lib/habits";
+import { getActivity } from "@/lib/activity";
 import { getYouTube } from "@/lib/youtube";
 import { compactNumber } from "@/lib/format";
+import { localDay } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
 
+const WK = ["S", "M", "T", "W", "T", "F", "S"];
+
 export default async function AnalyticsPage() {
-  const [{ items }, habits, { stats }] = await Promise.all([getItems(), getHabits(), getYouTube()]);
+  const [{ items }, activity, { stats }] = await Promise.all([getItems(), getActivity(), getYouTube()]);
 
   const tasks = items.filter((i) => i.type === "task");
   const done = tasks.filter((i) => i.status === "done").length;
@@ -16,20 +19,20 @@ export default async function AnalyticsPage() {
   const personal = items.filter((i) => i.category === "personal").length;
   const ideas = items.filter((i) => i.type === "idea").length;
   const reminders = items.filter((i) => i.type === "reminder").length;
-  const weekTotal = habits.totalHabits * 7;
-  const weekDone = habits.habits.reduce((s, h) => s + h.weekDone, 0);
-  const consistency = weekTotal ? Math.round((weekDone / weekTotal) * 100) : 0;
-  const bestStreak = habits.habits.reduce((m, h) => Math.max(m, h.streak), 0);
+
+  // Last 14 days of activity for the bar chart.
+  const last14 = activity.days.slice(-14);
+  const barMax = Math.max(1, ...last14.map((d) => activity.countByDay[d] ?? 0));
 
   return (
     <>
-      <PageHeader title="Analytics" subtitle="How you're tracking across tasks, habits & content" />
+      <PageHeader title="Analytics" subtitle="How you're tracking across tasks, activity & content" />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Task completion" value={`${completion}%`} sub={`${done}/${tasks.length} tasks done`} />
-        <Stat label="Habit consistency" value={`${consistency}%`} sub={`${weekDone}/${weekTotal} this week`} />
-        <Stat label="Best streak" value={`${bestStreak}`} sub="days in a row" />
-        <Stat label="Ideas captured" value={`${ideas}`} sub="parked for later" />
+        <Stat label="Captured this week" value={`${activity.capturedThisWeek}`} sub="thoughts logged" />
+        <Stat label="Completed all-time" value={`${activity.completedTotal}`} sub="items finished" />
+        <Stat label="Active days" value={`${activity.activeDays}`} sub="in the last ~19 weeks" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -46,19 +49,21 @@ export default async function AnalyticsPage() {
         </section>
 
         <section className="card p-5">
-          <h3 className="mb-4 text-[15px] font-bold">Habit consistency (this week)</h3>
-          <div className="flex flex-col gap-3">
-            {habits.habits.map((h) => (
-              <div key={h.id} className="flex items-center gap-3">
-                <span className="text-[16px]">{h.emoji}</span>
-                <span className="w-28 shrink-0 truncate text-[13px] font-semibold">{h.name}</span>
-                <div className="h-2 flex-1 overflow-hidden rounded bg-[#eef1f4]">
-                  <div className="h-full rounded bg-[var(--green-bright)]" style={{ width: `${(h.weekDone / 7) * 100}%` }} />
+          <h3 className="mb-4 text-[15px] font-bold">Activity — last 14 days</h3>
+          <div className="flex items-end justify-between gap-1.5" style={{ height: 130 }}>
+            {last14.map((d) => {
+              const c = activity.countByDay[d] ?? 0;
+              const h = Math.round((c / barMax) * 100);
+              const dow = new Date(d + "T12:00:00Z").getUTCDay();
+              return (
+                <div key={d} className="flex flex-1 flex-col items-center gap-1.5" title={`${d}: ${c}`}>
+                  <div className="flex w-full flex-1 items-end">
+                    <div className="w-full rounded-t bg-[var(--green-bright)]" style={{ height: `${Math.max(3, h)}%`, opacity: c ? 1 : 0.25 }} />
+                  </div>
+                  <span className="text-[10px] font-semibold text-[var(--faint)]">{WK[dow]}</span>
                 </div>
-                <span className="w-10 text-right text-[12px] font-semibold text-[var(--muted)]">{h.weekDone}/7</span>
-              </div>
-            ))}
-            {habits.habits.length === 0 && <p className="text-sm text-[var(--muted2)]">No habits yet.</p>}
+              );
+            })}
           </div>
         </section>
       </div>

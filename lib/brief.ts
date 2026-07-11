@@ -1,5 +1,5 @@
 import { completeText } from "./llm";
-import { localDay } from "./habits";
+import { localDay } from "./date";
 import { Item } from "./types";
 
 // The one intentional brain call per morning: turn today's open items into a

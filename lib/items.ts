@@ -53,7 +53,10 @@ export async function insertItems(
 export async function setItemStatus(id: string, status: Item["status"]) {
   const supabase = getSupabase();
   if (!supabase) throw new Error("Supabase not configured");
-  const { error } = await supabase.from(TABLE).update({ status }).eq("id", id);
+  const { error } = await supabase
+    .from(TABLE)
+    .update({ status, completed_at: status === "done" ? new Date().toISOString() : null })
+    .eq("id", id);
   if (error) throw new Error(error.message);
 }
 

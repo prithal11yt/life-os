@@ -1,3 +1,17 @@
+// yyyy-mm-dd in the user's timezone (IST), so "today" is consistent.
+export function localDay(d: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(d);
+}
+
+// The last N day-strings, oldest → newest.
+export function recentDays(n: number = 133): string[] {
+  const out: string[] = [];
+  for (let i = n - 1; i >= 0; i--) {
+    out.push(localDay(new Date(Date.now() - i * 86400_000)));
+  }
+  return out;
+}
+
 // Coerce a model-provided due date into a valid ISO timestamp or null.
 // The brain (Llama) sometimes returns phrases like "tomorrow morning" instead
 // of ISO 8601. Postgres rejects those, so we normalize before every insert —
