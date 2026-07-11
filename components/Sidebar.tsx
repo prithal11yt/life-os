@@ -1,24 +1,25 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { talkToAssistant } from "@/app/actions";
 
 const ASSISTANT = process.env.NEXT_PUBLIC_ASSISTANT_NAME || "Ramu Kaka";
 
 const NAV = [
-  { label: "Dashboard", active: true, icon: "grid" },
-  { label: "Tasks", icon: "check" },
-  { label: "Calendar", icon: "calendar" },
-  { label: "Messages", icon: "chat", badge: "12" },
-  { label: "YouTube", icon: "play" },
-  { label: "Habits", icon: "target" },
-  { label: "Analytics", icon: "chart" },
-  { label: "Notes", icon: "note" },
-  { label: "Settings", icon: "gear" },
+  { label: "Dashboard", href: "/", icon: "grid" },
+  { label: "Tasks", href: "/tasks", icon: "check" },
+  { label: "Calendar", href: "/calendar", icon: "calendar" },
+  { label: "YouTube", href: "/youtube", icon: "play" },
+  { label: "Habits", href: "/habits", icon: "target" },
+  { label: "Analytics", href: "/analytics", icon: "chart" },
+  { label: "Notes", href: "/notes", icon: "note" },
+  { label: "Settings", href: "/settings", icon: "gear" },
 ];
 
 export default function Sidebar() {
+  const pathname = usePathname();
   const router = useRouter();
   const [input, setInput] = useState("");
   const [reply, setReply] = useState<string | null>(null);
@@ -39,39 +40,33 @@ export default function Sidebar() {
 
   return (
     <aside className="hidden w-[230px] shrink-0 flex-col border-r border-[var(--line)] bg-[var(--surface)] p-5 lg:flex">
-      <div className="mb-7 flex items-center gap-3 px-1">
-        <span
-          className="grid h-9 w-9 place-items-center rounded-xl text-white"
-          style={{ background: "linear-gradient(150deg,#22c55e,#0ea5e9)" }}
-        >
+      <Link href="/" className="mb-7 flex items-center gap-3 px-1">
+        <span className="grid h-9 w-9 place-items-center rounded-xl text-white" style={{ background: "linear-gradient(150deg,#22c55e,#0ea5e9)" }}>
           <Icon name="bot" />
         </span>
         <span className="text-[15px] font-bold tracking-tight">{ASSISTANT}</span>
-      </div>
+      </Link>
 
       <nav className="flex flex-col gap-1">
-        {NAV.map((n) => (
-          <a
-            key={n.label}
-            href="#"
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
-              n.active
-                ? "bg-[var(--green-soft)] font-semibold text-[var(--green)]"
-                : "font-medium text-[var(--muted)] hover:bg-[var(--panel)]"
-            }`}
-          >
-            <Icon name={n.icon} />
-            {n.label}
-            {n.badge && (
-              <span className="ml-auto rounded-full bg-[var(--green-soft)] px-2 py-0.5 text-[11px] font-bold text-[var(--green)]">
-                {n.badge}
-              </span>
-            )}
-          </a>
-        ))}
+        {NAV.map((n) => {
+          const active = pathname === n.href;
+          return (
+            <Link
+              key={n.label}
+              href={n.href}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${
+                active
+                  ? "bg-[var(--green-soft)] font-semibold text-[var(--green)]"
+                  : "font-medium text-[var(--muted)] hover:bg-[var(--panel)]"
+              }`}
+            >
+              <Icon name={n.icon} />
+              {n.label}
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* Ask assistant */}
       <div className="mt-auto rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4">
         <div className="mb-2 flex items-center gap-2">
           <span className="grid h-6 w-6 place-items-center rounded-lg bg-[var(--green-soft)] text-[var(--green)]">
@@ -79,18 +74,12 @@ export default function Sidebar() {
           </span>
           <span className="text-sm font-bold">Ask {ASSISTANT}</span>
         </div>
-        <p className="mb-3 text-xs leading-relaxed text-[var(--muted2)]">
-          Voice note on Telegram, or type below.
-        </p>
+        <p className="mb-3 text-xs leading-relaxed text-[var(--muted2)]">Voice note on Telegram, or type below.</p>
 
-        <div className="mb-3 flex items-center justify-center gap-3">
+        <div className="mb-3 flex items-center justify-center">
           <div className="flex h-11 items-center justify-center gap-[2px] rounded-full border border-[var(--line)] bg-white px-3">
             {[9, 16, 22, 14, 8].map((h, i) => (
-              <span
-                key={i}
-                className="wavebar"
-                style={{ height: h, animationDelay: `${i * 0.15}s` }}
-              />
+              <span key={i} className="wavebar" style={{ height: h, animationDelay: `${i * 0.15}s` }} />
             ))}
           </div>
         </div>
@@ -102,11 +91,7 @@ export default function Sidebar() {
             placeholder="Remind me to…"
             className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none placeholder:text-[var(--faint)] focus:border-[var(--green-bright)]"
           />
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-lg bg-[var(--green)] px-3 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
+          <button type="submit" disabled={pending} className="rounded-lg bg-[var(--green)] px-3 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50">
             {pending ? "Thinking…" : "Send"}
           </button>
         </form>
@@ -122,10 +107,7 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
     case "bot":
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 3v3M6.5 6.5 8 8M17.5 6.5 16 8" />
-          <rect x="5" y="8" width="14" height="11" rx="4" />
-          <circle cx="9.5" cy="13" r="1.3" fill="#fff" stroke="none" />
-          <circle cx="14.5" cy="13" r="1.3" fill="#fff" stroke="none" />
+          <path d="M12 3v3M6.5 6.5 8 8M17.5 6.5 16 8" /><rect x="5" y="8" width="14" height="11" rx="4" /><circle cx="9.5" cy="13" r="1.3" fill="#fff" stroke="none" /><circle cx="14.5" cy="13" r="1.3" fill="#fff" stroke="none" />
         </svg>
       );
     case "grid":
@@ -134,8 +116,6 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
       return (<svg {...p}><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>);
     case "calendar":
       return (<svg {...p}><rect x="3" y="4" width="18" height="18" rx="2.5" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>);
-    case "chat":
-      return (<svg {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>);
     case "play":
       return (<svg {...p}><rect x="2" y="5" width="20" height="14" rx="4" /><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none" /></svg>);
     case "target":
