@@ -17,6 +17,7 @@ export interface Item {
   due_at: string | null;
   source: string; // 'telegram' | 'manual'
   raw_transcript: string | null;
+  completed_at?: string | null;
 }
 
 // Shape Claude returns when it "understands" a voice note.
