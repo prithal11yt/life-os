@@ -47,11 +47,18 @@ export interface YouTubeVideo {
   thumbnail: string | null;
 }
 
-// Long-form-only performance over the last 30 days, refreshed daily.
-export interface YouTubeMonthly {
+// Long-form-only performance for one 30-day window.
+export interface YouTubeMonthlyStats {
   videoCount: number;
   totalViews: number;
   totalLikes: number;
   totalComments: number;
+}
+
+// Three rolling 30-day windows for comparison, refreshed daily.
+export interface YouTubeMonthly {
+  current: YouTubeMonthlyStats; // last 30 days (focus)
+  prev1: YouTubeMonthlyStats; // 30–60 days ago
+  prev2: YouTubeMonthlyStats; // 60–90 days ago
   updatedAt: string | null;
 }

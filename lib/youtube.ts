@@ -1,7 +1,7 @@
 import { env, integrations } from "./config";
 import { getSupabase } from "./supabase";
 import { sampleYouTube } from "./sample-data";
-import { YouTubeStats, YouTubeVideo, YouTubeMonthly } from "./types";
+import { YouTubeStats, YouTubeVideo, YouTubeMonthly, YouTubeMonthlyStats } from "./types";
 
 // Reads channel stats + recent uploads from the YouTube Data API v3.
 // All read-only and free (10k quota units/day is plenty). Falls back to
@@ -79,10 +79,9 @@ export async function getYouTube(): Promise<{ stats: YouTubeStats; isSample: boo
 // ─── Long-form monthly stats (last 30 days, Shorts excluded) ──────────────
 
 const SAMPLE_MONTHLY: YouTubeMonthly = {
-  videoCount: 9,
-  totalViews: 184000,
-  totalLikes: 7600,
-  totalComments: 940,
+  current: { videoCount: 8, totalViews: 184000, totalLikes: 7600, totalComments: 940 },
+  prev1: { videoCount: 6, totalViews: 152000, totalLikes: 6100, totalComments: 720 },
+  prev2: { videoCount: 7, totalViews: 168000, totalLikes: 6800, totalComments: 810 },
   updatedAt: null,
 };
 
@@ -95,23 +94,22 @@ function parseIsoDuration(iso: string): number {
   return Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0);
 }
 
-async function computeMonthlyLongform(): Promise<YouTubeMonthly> {
+async function computeMonthly3(): Promise<YouTubeMonthly> {
   const key = env.youtubeKey!;
   const channelId = env.youtubeChannelId!;
-  const cutoff = Date.now() - 30 * 86400_000;
+  const cutoff = Date.now() - 90 * 86400_000;
 
-  const chRes = await fetch(
-    `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${key}`
-  );
-  const chJson = await chRes.json();
+  const chJson = await (
+    await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${key}`)
+  ).json();
   const uploads = chJson.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
   if (!uploads) throw new Error("no uploads playlist");
 
-  // Collect video ids for uploads within the last 30 days (playlist is newest-first).
+  // Collect uploads within the last 90 days (playlist is newest-first).
   const ids: string[] = [];
   let pageToken: string | undefined = undefined;
   let pages = 0;
-  outer: while (pages < 6) {
+  outer: while (pages < 10) {
     const url: string =
       `https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&maxResults=50&playlistId=${uploads}&key=${key}` +
       (pageToken ? `&pageToken=${pageToken}` : "");
@@ -126,8 +124,10 @@ async function computeMonthlyLongform(): Promise<YouTubeMonthly> {
     if (!pageToken) break;
   }
 
-  // Fetch stats + duration in batches of 50; keep only long-form in-window.
-  let videoCount = 0, totalViews = 0, totalLikes = 0, totalComments = 0;
+  const blank = (): YouTubeMonthlyStats => ({ videoCount: 0, totalViews: 0, totalLikes: 0, totalComments: 0 });
+  const windows: YouTubeMonthlyStats[] = [blank(), blank(), blank()];
+
+  // Fetch stats + duration in batches of 50; long-form only, bucketed by age.
   for (let i = 0; i < ids.length; i += 50) {
     const batch = ids.slice(i, i + 50).join(",");
     const vJson = await (
@@ -136,17 +136,19 @@ async function computeMonthlyLongform(): Promise<YouTubeMonthly> {
       )
     ).json();
     for (const v of vJson.items ?? []) {
-      const published = new Date(v.snippet.publishedAt).getTime();
-      if (published < cutoff) continue;
       if (parseIsoDuration(v.contentDetails.duration) <= SHORT_MAX_SECONDS) continue; // Short
-      videoCount++;
-      totalViews += Number(v.statistics.viewCount ?? 0);
-      totalLikes += Number(v.statistics.likeCount ?? 0);
-      totalComments += Number(v.statistics.commentCount ?? 0);
+      const ageDays = (Date.now() - new Date(v.snippet.publishedAt).getTime()) / 86400_000;
+      const idx = ageDays < 30 ? 0 : ageDays < 60 ? 1 : ageDays < 90 ? 2 : -1;
+      if (idx < 0) continue;
+      const w = windows[idx];
+      w.videoCount++;
+      w.totalViews += Number(v.statistics.viewCount ?? 0);
+      w.totalLikes += Number(v.statistics.likeCount ?? 0);
+      w.totalComments += Number(v.statistics.commentCount ?? 0);
     }
   }
 
-  return { videoCount, totalViews, totalLikes, totalComments, updatedAt: new Date().toISOString() };
+  return { current: windows[0], prev1: windows[1], prev2: windows[2], updatedAt: new Date().toISOString() };
 }
 
 // Reads the cached monthly stats; recomputes at most once a day.
@@ -154,41 +156,24 @@ export async function getYouTubeMonthly(): Promise<{ monthly: YouTubeMonthly; is
   const supabase = getSupabase();
   if (!integrations.youtube || !supabase) return { monthly: SAMPLE_MONTHLY, isSample: true };
 
-  const { data } = await supabase.from("lifeos_yt_monthly").select("*").eq("id", 1).maybeSingle();
-  const row = data as {
-    video_count: number; total_views: number; total_likes: number;
-    total_comments: number; updated_at: string;
-  } | null;
+  const { data } = await supabase
+    .from("lifeos_yt_monthly")
+    .select("data, updated_at")
+    .eq("id", 1)
+    .maybeSingle();
+  const row = data as { data: YouTubeMonthly | null; updated_at: string } | null;
+  const cached = row?.data ?? null;
 
-  const fresh = row && Date.now() - new Date(row.updated_at).getTime() < 20 * HOUR;
-  if (fresh) {
-    return {
-      monthly: {
-        videoCount: row.video_count, totalViews: row.total_views,
-        totalLikes: row.total_likes, totalComments: row.total_comments, updatedAt: row.updated_at,
-      },
-      isSample: false,
-    };
-  }
+  const fresh = cached && row && Date.now() - new Date(row.updated_at).getTime() < 20 * HOUR;
+  if (fresh) return { monthly: { ...cached, updatedAt: row.updated_at }, isSample: false };
 
   try {
-    const m = await computeMonthlyLongform();
-    await supabase.from("lifeos_yt_monthly").upsert({
-      id: 1, video_count: m.videoCount, total_views: m.totalViews,
-      total_likes: m.totalLikes, total_comments: m.totalComments, updated_at: m.updatedAt,
-    });
+    const m = await computeMonthly3();
+    await supabase.from("lifeos_yt_monthly").upsert({ id: 1, data: m, updated_at: m.updatedAt });
     return { monthly: m, isSample: false };
   } catch (err) {
     console.error("getYouTubeMonthly error:", (err as Error).message);
-    if (row) {
-      return {
-        monthly: {
-          videoCount: row.video_count, totalViews: row.total_views,
-          totalLikes: row.total_likes, totalComments: row.total_comments, updatedAt: row.updated_at,
-        },
-        isSample: false,
-      };
-    }
+    if (cached && row) return { monthly: { ...cached, updatedAt: row.updated_at }, isSample: false };
     return { monthly: SAMPLE_MONTHLY, isSample: true };
   }
 }
