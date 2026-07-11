@@ -1,74 +1,58 @@
-import Header from "@/components/Header";
-import AssistantCore from "@/components/AssistantCore";
-import StatsRow from "@/components/StatsRow";
-import Board from "@/components/Board";
-import YouTubePanel from "@/components/YouTubePanel";
-import { TodayPanel } from "@/components/SidePanels";
-import HabitTracker from "@/components/HabitTracker";
+import Sidebar from "@/components/Sidebar";
+import Topbar from "@/components/Topbar";
+import StatCards from "@/components/StatCards";
+import Heatmap from "@/components/Heatmap";
+import PriorityTasks from "@/components/PriorityTasks";
+import YouTubeCard from "@/components/YouTubeCard";
+import MessagesCard from "@/components/MessagesCard";
+import HabitsCard from "@/components/HabitsCard";
+import ScheduleCard from "@/components/ScheduleCard";
 import { getItems } from "@/lib/items";
 import { getYouTube } from "@/lib/youtube";
 import { getHabits, localDay, recentDays } from "@/lib/habits";
 
-// Always render fresh — this is a live personal dashboard.
 export const dynamic = "force-dynamic";
 
-const ASSISTANT = process.env.NEXT_PUBLIC_ASSISTANT_NAME || "Ramu Kaka";
 const ADDRESS = process.env.NEXT_PUBLIC_ADDRESS_AS || "sir";
 
 export default async function Home() {
-  const [{ items, isSample }, { stats }, habits] = await Promise.all([
+  const [{ items }, { stats }, habits] = await Promise.all([
     getItems(),
     getYouTube(),
     getHabits(),
   ]);
 
   const today = localDay();
-  const dueToday = items
-    .filter((i) => i.status === "open" && i.due_at && localDay(new Date(i.due_at)) <= today)
+  const open = items.filter((i) => i.status === "open");
+  const openTasks = open.filter((i) => i.type === "task").length;
+  const dueToday = open
+    .filter((i) => i.due_at && localDay(new Date(i.due_at)) <= today)
     .sort((a, b) => new Date(a.due_at!).getTime() - new Date(b.due_at!).getTime());
+  const messages = items
+    .filter((i) => i.source === "telegram")
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 4);
 
   return (
-    <div className="min-h-full">
-      <Header />
+    <div className="flex min-h-screen">
+      <Sidebar />
 
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <AssistantCore items={items} addressAs={ADDRESS} assistantName={ASSISTANT} />
+      <main className="flex min-w-0 flex-1 flex-col gap-[18px] p-5 sm:p-7">
+        <Topbar address={ADDRESS} openTasks={openTasks} dueToday={dueToday.length} />
 
-        {isSample && (
-          <div className="mt-6 flex flex-wrap items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
-            <span>🛰️</span>
-            <span className="font-medium">Preview mode</span>
-            <span className="text-[var(--muted)]">
-              — running on sample tasks. Connect storage and your real captures flow onto the board.
-            </span>
-          </div>
-        )}
+        <StatCards items={items} habits={habits.habits} />
 
-        <div className="mt-6">
-          <StatsRow items={items} />
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Heatmap countByDay={habits.countByDay} days={recentDays()} totalHabits={habits.totalHabits} today={today} />
+          <PriorityTasks initialItems={items} />
+          <YouTubeCard stats={stats} />
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.7fr_1fr]">
-          <Board initialItems={items} isSample={isSample} />
-
-          <div className="flex flex-col gap-6">
-            <YouTubePanel stats={stats} />
-            <TodayPanel items={dueToday} />
-          </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <MessagesCard messages={messages} />
+          <HabitsCard initialHabits={habits.habits} />
+          <ScheduleCard items={dueToday} />
         </div>
-
-        <div className="mt-6">
-          <HabitTracker
-            initialHabits={habits.habits}
-            countByDay={habits.countByDay}
-            days={recentDays()}
-            today={today}
-          />
-        </div>
-
-        <footer className="mt-10 pb-6 text-center text-xs text-[var(--muted)]">
-          {ASSISTANT} · your always-on chief of staff — watching quietly, thinking only when it counts.
-        </footer>
       </main>
     </div>
   );

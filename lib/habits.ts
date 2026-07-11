@@ -15,6 +15,7 @@ export interface HabitView extends Habit {
   doneToday: boolean;
   streak: number; // consecutive days completed (up to today)
   total: number; // total completions
+  weekDone: number; // completions in the last 7 days (0-7)
 }
 
 const HABITS_TABLE = "lifeos_habits";
@@ -64,6 +65,7 @@ export async function getHabits(): Promise<HabitsData> {
   }
 
   const today = localDay();
+  const last7 = recentDays(7);
   const views: HabitView[] = habits.map((h) => {
     const set = daysByHabit.get(h.id) ?? new Set<string>();
     return {
@@ -71,6 +73,7 @@ export async function getHabits(): Promise<HabitsData> {
       doneToday: set.has(today),
       streak: computeStreak(set),
       total: set.size,
+      weekDone: last7.filter((d) => set.has(d)).length,
     };
   });
 
