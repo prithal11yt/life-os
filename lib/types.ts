@@ -46,3 +46,12 @@ export interface YouTubeVideo {
   publishedAt: string;
   thumbnail: string | null;
 }
+
+// Long-form-only performance over the last 30 days, refreshed daily.
+export interface YouTubeMonthly {
+  videoCount: number;
+  totalViews: number;
+  totalLikes: number;
+  totalComments: number;
+  updatedAt: string | null;
+}
